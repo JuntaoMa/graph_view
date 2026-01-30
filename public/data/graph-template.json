@@ -1,0 +1,131 @@
+{
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "需求分析",
+      "type": "process",
+      "attrs": {
+        "owner": "产品团队",
+        "confidence": 0.82,
+        "source": "业务访谈",
+        "updatedAt": "2026-01-28",
+        "tags": ["需求", "流程"],
+        "description": "定义业务目标、范围与核心问题。"
+      }
+    },
+    {
+      "id": "n2",
+      "label": "数据导入",
+      "type": "data",
+      "attrs": {
+        "owner": "数据平台",
+        "confidence": 0.76,
+        "source": "ETL 管道",
+        "updatedAt": "2026-01-27",
+        "tags": ["数据", "管道"],
+        "description": "汇集日志、事件与结构化数据。"
+      }
+    },
+    {
+      "id": "n3",
+      "label": "知识图谱",
+      "type": "graph",
+      "attrs": {
+        "owner": "图谱团队",
+        "confidence": 0.91,
+        "source": "融合模型",
+        "updatedAt": "2026-01-29",
+        "tags": ["核心", "系统"],
+        "description": "连接实体与关系，形成可查询的知识结构。"
+      }
+    },
+    {
+      "id": "n4",
+      "label": "洞察输出",
+      "type": "insight",
+      "attrs": {
+        "owner": "分析团队",
+        "confidence": 0.73,
+        "source": "分析看板",
+        "updatedAt": "2026-01-26",
+        "tags": ["洞察", "交付"],
+        "description": "产出可行动的洞察与建议。"
+      }
+    },
+    {
+      "id": "n5",
+      "label": "本地存储",
+      "type": "storage",
+      "attrs": {
+        "owner": "安全团队",
+        "confidence": 0.88,
+        "source": "本地磁盘",
+        "updatedAt": "2026-01-25",
+        "tags": ["隐私", "安全"],
+        "description": "确保数据本地化与可控访问。"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "n1",
+      "target": "n2",
+      "label": "准备",
+      "attrs": {
+        "relation": "inputs",
+        "strength": 0.63,
+        "evidence": "调研会议",
+        "updatedAt": "2026-01-27"
+      }
+    },
+    {
+      "id": "e2",
+      "source": "n2",
+      "target": "n3",
+      "label": "构建",
+      "attrs": {
+        "relation": "builds",
+        "strength": 0.79,
+        "evidence": "管道记录",
+        "updatedAt": "2026-01-29"
+      }
+    },
+    {
+      "id": "e3",
+      "source": "n3",
+      "target": "n4",
+      "label": "输出",
+      "attrs": {
+        "relation": "outputs",
+        "strength": 0.71,
+        "evidence": "分析任务",
+        "updatedAt": "2026-01-29"
+      }
+    },
+    {
+      "id": "e4",
+      "source": "n5",
+      "target": "n3",
+      "label": "支持",
+      "attrs": {
+        "relation": "supports",
+        "strength": 0.84,
+        "evidence": "存储策略",
+        "updatedAt": "2026-01-25"
+      }
+    },
+    {
+      "id": "e5",
+      "source": "n3",
+      "target": "n3",
+      "label": "自环",
+      "attrs": {
+        "relation": "feedback",
+        "strength": 0.52,
+        "evidence": "自学习",
+        "updatedAt": "2026-01-29"
+      }
+    }
+  ]
+}
