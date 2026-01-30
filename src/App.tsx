@@ -7,11 +7,16 @@ import { saveViewSnapshot } from './workspace/storage';
 import { CanvasStage } from './components/CanvasStage';
 import { CanvasToolbar } from './components/CanvasToolbar';
 import { LeftPanel } from './components/LeftPanel';
-import { RightPanel } from './components/RightPanel';
 import { StatusBar } from './components/StatusBar';
 import { TopNav } from './components/TopNav';
 
 export function App() {
+  type Command = {
+    name: string;
+    apply: () => Promise<void> | void;
+    revert: () => Promise<void> | void;
+  };
+
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [selection, setSelection] = useState<
     { type: 'node'; data: NodeData } | { type: 'edge'; data: EdgeData } | null
@@ -19,19 +24,12 @@ export function App() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>('画布缩放 100%');
+  const [activityItems, setActivityItems] = useState<
+    Array<{ id: string; text: string; meta: string }>
+  >([]);
   const graphRef = useRef<Graph | null>(null);
-  const pastLayouts = useRef<
-    Array<{
-      before: ReturnType<typeof captureViewSnapshot>;
-      after: ReturnType<typeof captureViewSnapshot>;
-    }>
-  >([]);
-  const futureLayouts = useRef<
-    Array<{
-      before: ReturnType<typeof captureViewSnapshot>;
-      after: ReturnType<typeof captureViewSnapshot>;
-    }>
-  >([]);
+  const undoStack = useRef<Command[]>([]);
+  const redoStack = useRef<Command[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -48,55 +46,106 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMeta = event.metaKey || event.ctrlKey;
+      if (!isMeta) return;
+      if (event.key.toLowerCase() === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        void handleUndo();
+      }
+      if (event.key.toLowerCase() === 'z' && event.shiftKey) {
+        event.preventDefault();
+        void handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const updateHistoryFlags = () => {
-    setCanUndo(pastLayouts.current.length > 0);
-    setCanRedo(futureLayouts.current.length > 0);
+    setCanUndo(undoStack.current.length > 0);
+    setCanRedo(redoStack.current.length > 0);
+  };
+
+  const logActivity = (text: string) => {
+    setStatusMessage(text);
+    setActivityItems((prev) => {
+      const meta = new Date().toLocaleString();
+      const item = {
+        id: `${Date.now()}_${prev.length}`,
+        text,
+        meta,
+      };
+      return [item, ...prev].slice(0, 20);
+    });
+  };
+
+  const pushCommand = (command: Command) => {
+    undoStack.current.push(command);
+    redoStack.current = [];
+    updateHistoryFlags();
   };
 
   const handleLayout = async () => {
-    if (!graphRef.current) return;
+    if (!graphRef.current) {
+      setStatusMessage('图谱尚未加载完成');
+      return;
+    }
     const graph = graphRef.current;
     const before = captureViewSnapshot(graph);
     await graph.layout(FORCE_LAYOUT);
     const after = captureViewSnapshot(graph);
-    pastLayouts.current.push({ before, after });
-    futureLayouts.current = [];
-    updateHistoryFlags();
-    setStatusMessage('已应用力导向布局');
+    pushCommand({
+      name: '应用力导向布局',
+      apply: () => applyViewSnapshot(graph, after, false),
+      revert: () => applyViewSnapshot(graph, before, false),
+    });
+    logActivity('已应用力导向布局');
   };
 
   const handleUndo = async () => {
-    if (!graphRef.current) return;
-    const entry = pastLayouts.current.pop();
-    if (!entry) return;
-    await applyViewSnapshot(graphRef.current, entry.before);
-    futureLayouts.current.push(entry);
+    if (!graphRef.current) {
+      setStatusMessage('图谱尚未加载完成');
+      return;
+    }
+    const command = undoStack.current.pop();
+    if (!command) return;
+    await command.revert();
+    redoStack.current.push(command);
     updateHistoryFlags();
-    setStatusMessage('已撤销上一次布局');
+    logActivity(`已撤销：${command.name}`);
   };
 
   const handleRedo = async () => {
-    if (!graphRef.current) return;
-    const entry = futureLayouts.current.pop();
-    if (!entry) return;
-    await applyViewSnapshot(graphRef.current, entry.after);
-    pastLayouts.current.push(entry);
+    if (!graphRef.current) {
+      setStatusMessage('图谱尚未加载完成');
+      return;
+    }
+    const command = redoStack.current.pop();
+    if (!command) return;
+    await command.apply();
+    undoStack.current.push(command);
     updateHistoryFlags();
-    setStatusMessage('已重做布局');
+    logActivity(`已重做：${command.name}`);
   };
 
   const handleSaveView = () => {
-    if (!graphRef.current) return;
+    if (!graphRef.current) {
+      setStatusMessage('图谱尚未加载完成');
+      return;
+    }
     const snapshot = captureViewSnapshot(graphRef.current);
-    saveViewSnapshot(snapshot);
-    setStatusMessage('视图已保存到本地工作区');
+    const record = saveViewSnapshot(snapshot);
+    logActivity(`视图已保存：${record.name}`);
   };
 
   return (
     <div className="app-shell">
       <TopNav />
       <div className="app-body">
-        <LeftPanel />
+        <LeftPanel activityItems={activityItems} />
         <main className="app-main">
           <CanvasToolbar
             onUndo={handleUndo}
@@ -109,15 +158,34 @@ export function App() {
           {graphData && (
             <CanvasStage
               data={graphData}
+              selection={selection}
               onSelect={setSelection}
               onGraphReady={(graph) => {
                 graphRef.current = graph;
+                logActivity('图谱已加载');
+              }}
+              onNodeMove={(payload) => {
+                if (!graphRef.current) return;
+                const graph = graphRef.current;
+                pushCommand({
+                  name: '移动节点',
+                  apply: () =>
+                    graph.translateElementTo(payload.id, [
+                      payload.after.x,
+                      payload.after.y,
+                    ], false),
+                  revert: () =>
+                    graph.translateElementTo(payload.id, [
+                      payload.before.x,
+                      payload.before.y,
+                    ], false),
+                });
+                logActivity('已移动节点');
               }}
             />
           )}
           <StatusBar message={statusMessage} />
         </main>
-        <RightPanel selection={selection} />
       </div>
     </div>
   );

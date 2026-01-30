@@ -5,8 +5,17 @@ type Selection =
   | { type: 'edge'; data: EdgeData }
   | null;
 
+type ActivityItem = {
+  id: string;
+  text: string;
+  meta: string;
+};
+
 type RightPanelProps = {
   selection: Selection;
+  showInspector: boolean;
+  showActivity: boolean;
+  activityItems: ActivityItem[];
 };
 
 function renderFieldValue(value: unknown) {
@@ -16,40 +25,47 @@ function renderFieldValue(value: unknown) {
   return String(value);
 }
 
-export function RightPanel({ selection }: RightPanelProps) {
+export function RightPanel({
+  selection,
+  showInspector,
+  showActivity,
+  activityItems,
+}: RightPanelProps) {
   const hasSelection = Boolean(selection);
+  const shouldShowInspector = showInspector && hasSelection;
 
   const headerTitle = selection?.type === 'edge' ? '关系详情' : '节点详情';
   const data = selection?.data;
   const meta = (data?.data ?? {}) as Record<string, unknown>;
   const label = (meta.label as string) ?? (data?.id as string) ?? '未命名';
 
+  if (!shouldShowInspector && !showActivity) {
+    return null;
+  }
+
   return (
     <aside className="side-panel side-panel--right">
-      <div className="panel-section">
-        <div className="panel-title">属性检查器</div>
-        <div className="inspect-card">
-          <div className="inspect-name">{headerTitle}</div>
-          <div className="inspect-type">{label}</div>
-          {selection?.type === 'node' && Array.isArray(meta.tags) && (
-            <div className="inspect-tags">
-              {meta.tags.map((tag) => (
-                <span className="tag" key={String(tag)}>
-                  {String(tag)}
-                </span>
-              ))}
+      {shouldShowInspector && (
+        <>
+          <div className="panel-section">
+            <div className="panel-title">属性检查器</div>
+            <div className="inspect-card">
+              <div className="inspect-name">{headerTitle}</div>
+              <div className="inspect-type">{label}</div>
+              {selection?.type === 'node' && Array.isArray(meta.tags) && (
+                <div className="inspect-tags">
+                  {meta.tags.map((tag) => (
+                    <span className="tag" key={String(tag)}>
+                      {String(tag)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-          {!hasSelection && (
-            <div className="inspect-hint">点击节点或边查看详情</div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      <div className="panel-section">
-        <div className="panel-title">属性字段</div>
-        {hasSelection ? (
-          <>
+          <div className="panel-section">
+            <div className="panel-title">属性字段</div>
             {selection?.type === 'node' && (
               <>
                 <div className="field-row">
@@ -110,45 +126,44 @@ export function RightPanel({ selection }: RightPanelProps) {
                 </div>
               </>
             )}
-          </>
-        ) : (
-          <div className="panel-meta">暂无选择</div>
-        )}
-      </div>
-
-      <div className="panel-section">
-        <div className="panel-title">说明</div>
-        <div className="relation-card">
-          <div className="relation-title">
-            {renderFieldValue(meta.description)}
           </div>
-          <div className="relation-meta">
-            {selection?.type === 'edge'
-              ? `source: ${(data as EdgeData | undefined)?.source ?? '—'}`
-              : `id: ${(data as NodeData | undefined)?.id ?? '—'}`}
-          </div>
-        </div>
-      </div>
 
-      <div className="panel-section">
-        <div className="panel-title">活动流</div>
-        <div className="timeline">
-          <div className="timeline-item">
-            <span className="timeline-dot" />
-            <div>
-              <div className="timeline-title">点击节点或边查看详情</div>
-              <div className="timeline-meta">交互示例 · 暂无真实数据</div>
+          <div className="panel-section">
+            <div className="panel-title">说明</div>
+            <div className="relation-card">
+              <div className="relation-title">
+                {renderFieldValue(meta.description)}
+              </div>
+              <div className="relation-meta">
+                {selection?.type === 'edge'
+                  ? `source: ${(data as EdgeData | undefined)?.source ?? '—'}`
+                  : `id: ${(data as NodeData | undefined)?.id ?? '—'}`}
+              </div>
             </div>
           </div>
-          <div className="timeline-item">
-            <span className="timeline-dot" />
-            <div>
-              <div className="timeline-title">后续可接入操作日志</div>
-              <div className="timeline-meta">占位内容 · 本地模式</div>
-            </div>
+        </>
+      )}
+
+      {showActivity && (
+        <div className="panel-section">
+          <div className="panel-title">活动流</div>
+          <div className="timeline">
+            {activityItems.length === 0 ? (
+              <div className="panel-meta">暂无活动</div>
+            ) : (
+              activityItems.map((item) => (
+                <div className="timeline-item" key={item.id}>
+                  <span className="timeline-dot" />
+                  <div>
+                    <div className="timeline-title">{item.text}</div>
+                    <div className="timeline-meta">{item.meta}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 }

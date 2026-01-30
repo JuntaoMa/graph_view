@@ -1,28 +1,39 @@
 import type { EdgeData, GraphData, NodeData } from '@antv/g6';
 import type { Graph } from '@antv/g6';
 import { GraphCanvas } from './GraphCanvas';
+import { InspectorOverlay } from './InspectorOverlay';
 
 type CanvasStageProps = {
   data: GraphData;
+  selection: { type: 'node'; data: NodeData } | { type: 'edge'; data: EdgeData } | null;
   onSelect?: (
     selection: { type: 'node'; data: NodeData } | { type: 'edge'; data: EdgeData } | null,
   ) => void;
   onGraphReady?: (graph: Graph) => void;
+  onNodeMove?: (payload: {
+    id: string;
+    before: { x: number; y: number };
+    after: { x: number; y: number };
+  }) => void;
 };
 
-export function CanvasStage({ data, onSelect, onGraphReady }: CanvasStageProps) {
+export function CanvasStage({
+  data,
+  selection,
+  onSelect,
+  onGraphReady,
+  onNodeMove,
+}: CanvasStageProps) {
   return (
     <div className="canvas-stage">
-      <GraphCanvas data={data} onSelect={onSelect} onGraphReady={onGraphReady} />
+      <GraphCanvas
+        data={data}
+        onSelect={onSelect}
+        onGraphReady={onGraphReady}
+        onNodeMove={onNodeMove}
+      />
       <div className="canvas-overlay">
-        <div className="overlay-card">
-          <div className="overlay-title">概览</div>
-          <div className="overlay-metric">节点 48 · 边 92</div>
-        </div>
-        <div className="overlay-card">
-          <div className="overlay-title">迷你地图</div>
-          <div className="mini-map" />
-        </div>
+        <InspectorOverlay selection={selection} />
       </div>
     </div>
   );

@@ -1,21 +1,27 @@
-import type { Graph } from '@antv/g6';
+import type { Graph, NodeData, Point } from '@antv/g6';
 
 export type ViewSnapshot = {
   nodes: Record<string, { x: number; y: number }>;
 };
+
+export function getNodePosition(node: NodeData): { x: number; y: number } | null {
+  const style = (node.style ?? {}) as { x?: number; y?: number };
+  const x = typeof style.x === 'number' ? style.x : (node as { x?: number }).x;
+  const y = typeof style.y === 'number' ? style.y : (node as { y?: number }).y;
+  if (typeof x === 'number' && typeof y === 'number') {
+    return { x, y };
+  }
+  return null;
+}
 
 export function captureViewSnapshot(graph: Graph): ViewSnapshot {
   const nodes = graph.getData().nodes;
   const snapshot: ViewSnapshot = { nodes: {} };
 
   nodes.forEach((node) => {
-    const style = (node.style ?? {}) as { x?: number; y?: number };
-    const x =
-      typeof style.x === 'number' ? style.x : (node as { x?: number }).x;
-    const y =
-      typeof style.y === 'number' ? style.y : (node as { y?: number }).y;
-    if (typeof x === 'number' && typeof y === 'number') {
-      snapshot.nodes[String(node.id)] = { x, y };
+    const position = getNodePosition(node);
+    if (position) {
+      snapshot.nodes[String(node.id)] = position;
     }
   });
 
@@ -25,14 +31,15 @@ export function captureViewSnapshot(graph: Graph): ViewSnapshot {
 export async function applyViewSnapshot(
   graph: Graph,
   snapshot: ViewSnapshot,
+  animate = false,
 ): Promise<void> {
   graph.stopLayout();
   const positions = Object.fromEntries(
     Object.entries(snapshot.nodes).map(([id, point]) => [
       id,
-      { x: point.x, y: point.y },
+      [point.x, point.y] as Point,
     ]),
-  );
+  ) as Record<string, Point>;
   if (Object.keys(positions).length === 0) return;
-  await graph.translateElementTo(positions, true);
+  await graph.translateElementTo(positions, animate);
 }

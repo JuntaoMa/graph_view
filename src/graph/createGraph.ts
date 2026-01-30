@@ -1,17 +1,18 @@
 import { Graph } from '@antv/g6';
 import type { GraphData, LayoutOptions } from '@antv/g6';
+import { DEFAULT_LINK_DISTANCE } from './constants';
 
 export const FORCE_LAYOUT: LayoutOptions = {
   type: 'force',
   preventOverlap: true,
-  linkDistance: 160,
+  linkDistance: DEFAULT_LINK_DISTANCE,
 };
 
 export function createGraph(container: HTMLElement, data: GraphData) {
   const graph = new Graph({
     container,
     data,
-    layout: FORCE_LAYOUT,
+    padding: 48,
     node: {
       type: 'circle',
     },
@@ -25,10 +26,6 @@ export function createGraph(container: HTMLElement, data: GraphData) {
   if (width > 0 && height > 0) {
     graph.setSize(width, height);
   }
-
-  graph.render().then(() => {
-    graph.fitView({ padding: 48 });
-  });
 
   return graph;
 }

@@ -1,0 +1,4 @@
+export const DEFAULT_LABEL_FONT_SIZE = 6;
+export const DEFAULT_EDGE_LABEL_FONT_SIZE = 6;
+export const DEFAULT_NODE_SIZE = 10;
+export const DEFAULT_LINK_DISTANCE = Math.max(20, DEFAULT_NODE_SIZE * 2);
