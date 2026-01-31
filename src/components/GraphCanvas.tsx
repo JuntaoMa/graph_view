@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { EdgeData, GraphData, NodeData, Point } from '@antv/g6';
+import type { EdgeData, GraphData, NodeData } from '@antv/g6';
 import type { Graph } from '@antv/g6';
 import { createGraph, FORCE_LAYOUT } from '../graph/createGraph';
 import { getNodePosition } from '../graph/view';
@@ -42,21 +42,6 @@ export function GraphCanvas({
     const dragStartPositions = new Map<string, { x: number; y: number }>();
     let active = true;
 
-    graph.setPlugins([
-      {
-        type: 'minimap',
-        key: 'minimap',
-        size: [180, 120],
-        position: 'left-top',
-        className: 'minimap',
-        containerStyle: {
-          left: '16px',
-          top: '16px',
-        },
-        delay: 128,
-      },
-    ]);
-
     const renderGraph = async () => {
       await graph.render();
       if (!active || graph.destroyed) return;
@@ -80,47 +65,6 @@ export function GraphCanvas({
 
     const handleCanvasClick = () => {
       selectRef.current?.(null);
-    };
-
-    const handleMinimapClick = (event: MouseEvent) => {
-      const minimapEl = graph
-        .getCanvas()
-        ?.getContainer()
-        ?.querySelector('.g6-minimap') as HTMLDivElement | null;
-      if (!minimapEl || graph.destroyed) return;
-      const rect = minimapEl.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
-
-      const nodes = graph.getData().nodes;
-      if (nodes.length === 0) return;
-
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-      nodes.forEach((node) => {
-        const pos = getNodePosition(node);
-        if (!pos) return;
-        minX = Math.min(minX, pos.x);
-        minY = Math.min(minY, pos.y);
-        maxX = Math.max(maxX, pos.x);
-        maxY = Math.max(maxY, pos.y);
-      });
-      if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
-      const width = Math.max(1, maxX - minX);
-      const height = Math.max(1, maxY - minY);
-      const worldX = minX + (x / rect.width) * width;
-      const worldY = minY + (y / rect.height) * height;
-
-      const zoom = graph.getZoom();
-      const center = graph.getViewportCenter();
-      const position: Point = [
-        center[0] - worldX * zoom,
-        center[1] - worldY * zoom,
-      ];
-      void graph.translateTo(position, false);
     };
 
     const handleNodeDragStart = (event: { target?: { id?: string }; data?: { id?: string } }) => {
@@ -154,11 +98,6 @@ export function GraphCanvas({
     graph.on('canvas:click', handleCanvasClick);
     graph.on('node:dragstart', handleNodeDragStart);
     graph.on('node:dragend', handleNodeDragEnd);
-    const minimapContainer = graph
-      .getCanvas()
-      ?.getContainer()
-      ?.querySelector('.g6-minimap') as HTMLDivElement | null;
-    minimapContainer?.addEventListener('click', handleMinimapClick);
 
     const resizeObserver = new ResizeObserver(() => {
       if (!containerRef.current) return;
@@ -177,7 +116,6 @@ export function GraphCanvas({
       graph.off('canvas:click', handleCanvasClick);
       graph.off('node:dragstart', handleNodeDragStart);
       graph.off('node:dragend', handleNodeDragEnd);
-      minimapContainer?.removeEventListener('click', handleMinimapClick);
       resizeObserver.disconnect();
       graph.destroy();
     };

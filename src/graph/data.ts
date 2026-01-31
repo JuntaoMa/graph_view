@@ -1,6 +1,7 @@
 import type { GraphData } from '@antv/g6';
-import { typePalette } from './palette';
+import { relationPalette, typePalette } from './palette';
 import {
+  DEFAULT_EDGE_ARROW_SIZE,
   DEFAULT_EDGE_LABEL_FONT_SIZE,
   DEFAULT_LABEL_FONT_SIZE,
   DEFAULT_NODE_SIZE,
@@ -40,35 +41,57 @@ export function buildSampleGraphData(rawData: RawGraphData): GraphData {
       },
       style: {
         labelText: node.name ?? node.label ?? '未命名',
-        fill: typePalette[node.type ?? 'EntityType'] ?? '#5C7CFA',
-        stroke: '#1C1E21',
-        lineWidth: 1,
+        fill: typePalette[node.type ?? 'EntityType'] ?? '#64748B',
+        stroke: typePalette[node.type ?? 'EntityType'] ?? '#64748B',
+        lineWidth: 0,
+        zIndex: 2,
         size: DEFAULT_NODE_SIZE,
-        labelPlacement: 'bottom',
-        labelFill: '#1C1E21',
+        labelPlacement: 'right',
+        labelOffsetX: 6,
+        labelFill: typePalette[node.type ?? 'EntityType'] ?? '#64748B',
         labelFontSize: DEFAULT_LABEL_FONT_SIZE,
-      },
-    })),
-    edges: rawData.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      data: {
-        name: edge.name ?? edge.label ?? '未命名',
-        label: edge.name ?? edge.label ?? '未命名',
-        ...edge.attrs,
-      },
-      style: {
-        stroke: '#868E96',
-        endArrow: true,
-        labelText: edge.name ?? edge.label ?? '未命名',
-        labelFill: '#495057',
-        labelFontSize: DEFAULT_EDGE_LABEL_FONT_SIZE,
+        labelFontWeight: 500,
+        labelZIndex: 3,
         labelBackground: true,
-        labelBackgroundFill: '#F8F9FA',
-        labelPadding: [2, 4, 2, 4],
+        labelBackgroundFill: '#ffffff',
+        labelBackgroundOpacity: 0.7,
+        labelBackgroundLineWidth: 1,
+        labelBackgroundPadding: [2, 6, 2, 6],
       },
     })),
+    edges: rawData.edges.map((edge) => {
+      const label = edge.name ?? edge.label ?? '未命名';
+      const relationKey = label.toUpperCase();
+      const stroke = relationPalette[relationKey] ?? '#64748B';
+      const labelOffsetY = edge.source < edge.target ? 8 : -8;
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        data: {
+          name: label,
+          label,
+          ...edge.attrs,
+        },
+        style: {
+          stroke,
+          lineWidth: 1,
+          zIndex: 0,
+          endArrow: true,
+          endArrowSize: DEFAULT_EDGE_ARROW_SIZE,
+          labelText: label,
+          labelFill: stroke,
+          labelFontSize: DEFAULT_EDGE_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+          labelAutoRotate: true,
+          labelBackground: false,
+          labelPlacement: 'center',
+          labelOffsetX: 0,
+          labelOffsetY,
+          labelZIndex: 1,
+        },
+      };
+    }),
   };
 }
 

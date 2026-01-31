@@ -19,7 +19,18 @@ export function createGraph(container: HTMLElement, data: GraphData) {
     edge: {
       type: 'line',
     },
-    behaviors: ['drag-canvas', 'zoom-canvas', 'drag-element'],
+    behaviors: [
+      'drag-canvas',
+      'zoom-canvas',
+      'drag-element',
+      {
+        type: 'fix-element-size',
+        key: 'fix-label-size',
+        enable: true,
+        node: { shape: 'label' },
+        edge: [{ shape: 'key', fields: ['lineWidth'] }, { shape: 'label' }],
+      },
+    ],
   });
 
   const { width, height } = container.getBoundingClientRect();
