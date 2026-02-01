@@ -42,6 +42,72 @@ export function GraphCanvas({
     const dragStartPositions = new Map<string, { x: number; y: number }>();
     let active = true;
 
+    const selectedNodeIds = new Set<string>();
+    const selectedEdgeIds = new Set<string>();
+
+    const updateSelectionStates = () => {
+      const data = graph.getData();
+      const highlightNodes = new Set<string>();
+      const highlightEdges = new Set<string>();
+
+      selectedNodeIds.forEach((id) => {
+        highlightNodes.add(id);
+        const relatedEdges = graph.getRelatedEdgesData(id);
+        relatedEdges.forEach((edge) => {
+          highlightEdges.add(edge.id);
+          highlightNodes.add(String(edge.source));
+          highlightNodes.add(String(edge.target));
+        });
+      });
+
+      selectedEdgeIds.forEach((id) => {
+        highlightEdges.add(id);
+        const edge = graph.getEdgeData(id);
+        if (edge) {
+          highlightNodes.add(String(edge.source));
+          highlightNodes.add(String(edge.target));
+        }
+      });
+
+      const hasHighlight = highlightNodes.size > 0 || highlightEdges.size > 0;
+      const states: Record<string, string[]> = {};
+
+      (data.nodes ?? []).forEach((node) => {
+        const id = String(node.id);
+        const nodeStates: string[] = [];
+        if (hasHighlight) {
+          nodeStates.push(highlightNodes.has(id) ? 'active' : 'inactive');
+        }
+        if (selectedNodeIds.has(id)) nodeStates.push('selected');
+        states[id] = nodeStates;
+      });
+
+      (data.edges ?? []).forEach((edge) => {
+        const id = String(edge.id);
+        const edgeStates: string[] = [];
+        if (hasHighlight) {
+          edgeStates.push(highlightEdges.has(id) ? 'active' : 'inactive');
+        }
+        if (selectedEdgeIds.has(id)) edgeStates.push('selected');
+        states[id] = edgeStates;
+      });
+
+      void graph.setElementState(states, false);
+
+      const totalSelected = selectedNodeIds.size + selectedEdgeIds.size;
+      if (totalSelected === 1) {
+        if (selectedNodeIds.size === 1) {
+          const [id] = selectedNodeIds;
+          selectRef.current?.({ type: 'node', data: graph.getNodeData(id) });
+        } else {
+          const [id] = selectedEdgeIds;
+          selectRef.current?.({ type: 'edge', data: graph.getEdgeData(id) });
+        }
+      } else {
+        selectRef.current?.(null);
+      }
+    };
+
     const renderGraph = async () => {
       await graph.render();
       if (!active || graph.destroyed) return;
@@ -51,20 +117,54 @@ export function GraphCanvas({
     };
 
     void renderGraph();
-    const handleNodeClick = (event: { target?: { id?: string } }) => {
+    const handleNodeClick = (event: {
+      target?: { id?: string };
+      originalEvent?: MouseEvent;
+    }) => {
       const id = event.target?.id;
       if (!id) return;
-      selectRef.current?.({ type: 'node', data: graph.getNodeData(id) });
+      const addToSelection =
+        event.originalEvent?.shiftKey ||
+        event.originalEvent?.metaKey ||
+        event.originalEvent?.ctrlKey;
+      if (!addToSelection) {
+        selectedNodeIds.clear();
+        selectedEdgeIds.clear();
+        selectedNodeIds.add(id);
+      } else if (selectedNodeIds.has(id)) {
+        selectedNodeIds.delete(id);
+      } else {
+        selectedNodeIds.add(id);
+      }
+      updateSelectionStates();
     };
 
-    const handleEdgeClick = (event: { target?: { id?: string } }) => {
+    const handleEdgeClick = (event: {
+      target?: { id?: string };
+      originalEvent?: MouseEvent;
+    }) => {
       const id = event.target?.id;
       if (!id) return;
-      selectRef.current?.({ type: 'edge', data: graph.getEdgeData(id) });
+      const addToSelection =
+        event.originalEvent?.shiftKey ||
+        event.originalEvent?.metaKey ||
+        event.originalEvent?.ctrlKey;
+      if (!addToSelection) {
+        selectedNodeIds.clear();
+        selectedEdgeIds.clear();
+        selectedEdgeIds.add(id);
+      } else if (selectedEdgeIds.has(id)) {
+        selectedEdgeIds.delete(id);
+      } else {
+        selectedEdgeIds.add(id);
+      }
+      updateSelectionStates();
     };
 
     const handleCanvasClick = () => {
-      selectRef.current?.(null);
+      selectedNodeIds.clear();
+      selectedEdgeIds.clear();
+      updateSelectionStates();
     };
 
     const handleNodeDragStart = (event: { target?: { id?: string }; data?: { id?: string } }) => {

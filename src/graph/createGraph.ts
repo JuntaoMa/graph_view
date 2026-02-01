@@ -1,6 +1,10 @@
 import { Graph } from '@antv/g6';
 import type { GraphData, LayoutOptions } from '@antv/g6';
-import { DEFAULT_LINK_DISTANCE } from './constants';
+import {
+  DEFAULT_EDGE_LABEL_FONT_SIZE,
+  DEFAULT_LABEL_FONT_SIZE,
+  DEFAULT_LINK_DISTANCE,
+} from './constants';
 
 export const FORCE_LAYOUT: LayoutOptions = {
   type: 'force',
@@ -15,9 +19,37 @@ export function createGraph(container: HTMLElement, data: GraphData) {
     padding: 48,
     node: {
       type: 'circle',
+      state: {
+        selected: {
+          labelFontSize: DEFAULT_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+        },
+        active: {
+          labelFontSize: DEFAULT_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+        },
+        inactive: {
+          labelFontSize: DEFAULT_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+        },
+      },
     },
     edge: {
       type: 'line',
+      state: {
+        selected: {
+          labelFontSize: DEFAULT_EDGE_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+        },
+        active: {
+          labelFontSize: DEFAULT_EDGE_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+        },
+        inactive: {
+          labelFontSize: DEFAULT_EDGE_LABEL_FONT_SIZE,
+          labelFontWeight: 500,
+        },
+      },
     },
     behaviors: [
       'drag-canvas',
