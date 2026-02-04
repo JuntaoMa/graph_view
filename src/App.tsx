@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EdgeData, Graph, GraphData, NodeData } from '@antv/g6';
-import { loadSampleGraphData } from './graph/data';
+import { toRawGraphData } from './graph/data';
+import { loadWorkspaceGraphData, saveGraphData, exportGraphData } from './workspace/graphStore';
 import { FORCE_LAYOUT } from './graph/createGraph';
 import { applyViewSnapshot, captureViewSnapshot } from './graph/view';
 import { saveViewSnapshot } from './workspace/storage';
@@ -30,10 +31,11 @@ export function App() {
   const graphRef = useRef<Graph | null>(null);
   const undoStack = useRef<Command[]>([]);
   const redoStack = useRef<Command[]>([]);
+  const workspaceId = 'default';
 
   useEffect(() => {
     let active = true;
-    loadSampleGraphData()
+    loadWorkspaceGraphData(workspaceId)
       .then((data) => {
         if (active) setGraphData(data);
       })
@@ -141,9 +143,96 @@ export function App() {
     logActivity(`视图已保存：${record.name}`);
   };
 
+  const handleExport = () => {
+    if (!graphRef.current) {
+      setStatusMessage('图谱尚未加载完成');
+      return;
+    }
+    const raw = toRawGraphData(graphRef.current.getData());
+    exportGraphData(raw, `graph-${workspaceId}.json`);
+    logActivity('已导出图谱数据');
+  };
+
+  const handleInspectorSave = (payload: {
+    type: 'node' | 'edge';
+    id: string;
+    name: string;
+    description: string;
+    fields: Array<{ name: string; value: string }>;
+  }) => {
+    if (!graphRef.current) {
+      setStatusMessage('图谱尚未加载完成');
+      return;
+    }
+    const graph = graphRef.current;
+    const fieldMap: Record<string, unknown> = {};
+    const keyMap: Record<string, string> =
+      payload.type === 'edge'
+        ? {
+            关系: 'relation',
+            强度: 'strength',
+            证据: 'evidence',
+            更新时间: 'updatedAt',
+          }
+        : {
+            类型: 'type',
+            负责人: 'owner',
+            可信度: 'confidence',
+            来源: 'source',
+            更新时间: 'updatedAt',
+          };
+    payload.fields.forEach((field) => {
+      const name = field.name.trim();
+      if (!name) return;
+      const key = keyMap[name] ?? name;
+      fieldMap[key] = field.value;
+    });
+
+    if (payload.type === 'node') {
+      graph.updateNodeData([
+        {
+          id: payload.id,
+          data: {
+            name: payload.name,
+            label: payload.name,
+            description: payload.description,
+            ...fieldMap,
+          },
+          style: {
+            labelText: payload.name,
+          },
+        },
+      ]);
+      const updated = graph.getNodeData(payload.id);
+      setSelection({ type: 'node', data: updated });
+      logActivity(`已更新节点：${payload.name || payload.id}`);
+    } else {
+      graph.updateEdgeData([
+        {
+          id: payload.id,
+          data: {
+            name: payload.name,
+            label: payload.name,
+            description: payload.description,
+            ...fieldMap,
+          },
+          style: {
+            labelText: payload.name,
+          },
+        },
+      ]);
+      const updated = graph.getEdgeData(payload.id);
+      setSelection({ type: 'edge', data: updated });
+      logActivity(`已更新关系：${payload.name || payload.id}`);
+    }
+
+    const raw = toRawGraphData(graph.getData());
+    saveGraphData(raw, workspaceId);
+  };
+
   return (
     <div className="app-shell">
-      <TopNav />
+      <TopNav onExport={handleExport} />
       <div className="app-body">
         <LeftPanel activityItems={activityItems} />
         <main className="app-main">
@@ -160,6 +249,7 @@ export function App() {
               data={graphData}
               selection={selection}
               onSelect={setSelection}
+              onInspectorSave={handleInspectorSave}
               onGraphReady={(graph) => {
                 graphRef.current = graph;
                 logActivity('图谱已加载');

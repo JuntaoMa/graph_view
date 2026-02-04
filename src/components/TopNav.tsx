@@ -1,4 +1,10 @@
-export function TopNav() {
+type TopNavProps = {
+  onImport?: () => void;
+  onExport?: () => void;
+  onNewGraph?: () => void;
+};
+
+export function TopNav({ onImport, onExport, onNewGraph }: TopNavProps) {
   return (
     <header className="top-nav">
       <div className="top-nav__brand">
@@ -13,9 +19,15 @@ export function TopNav() {
         <span className="search-kbd">⌘K</span>
       </div>
       <div className="top-nav__actions">
-        <button className="ghost">导入</button>
-        <button className="ghost">导出</button>
-        <button className="primary">新建图谱</button>
+        <button className="ghost" onClick={onImport}>
+          导入
+        </button>
+        <button className="ghost" onClick={onExport}>
+          导出
+        </button>
+        <button className="primary" onClick={onNewGraph}>
+          新建图谱
+        </button>
         <div className="avatar">SV</div>
       </div>
     </header>

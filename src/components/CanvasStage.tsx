@@ -15,6 +15,13 @@ type CanvasStageProps = {
     before: { x: number; y: number };
     after: { x: number; y: number };
   }) => void;
+  onInspectorSave?: (payload: {
+    type: 'node' | 'edge';
+    id: string;
+    name: string;
+    description: string;
+    fields: Array<{ name: string; value: string }>;
+  }) => void;
 };
 
 export function CanvasStage({
@@ -23,6 +30,7 @@ export function CanvasStage({
   onSelect,
   onGraphReady,
   onNodeMove,
+  onInspectorSave,
 }: CanvasStageProps) {
   return (
     <div className="canvas-stage">
@@ -33,7 +41,7 @@ export function CanvasStage({
         onNodeMove={onNodeMove}
       />
       <div className="canvas-overlay">
-        <InspectorOverlay selection={selection} />
+        <InspectorOverlay selection={selection} onSave={onInspectorSave} />
       </div>
     </div>
   );

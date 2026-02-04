@@ -8,6 +8,13 @@ type Selection =
 
 type InspectorOverlayProps = {
   selection: Selection;
+  onSave?: (payload: {
+    type: 'node' | 'edge';
+    id: string;
+    name: string;
+    description: string;
+    fields: Array<{ name: string; value: string }>;
+  }) => void;
 };
 
 function renderFieldValue(value: unknown) {
@@ -17,7 +24,10 @@ function renderFieldValue(value: unknown) {
   return String(value);
 }
 
-export function InspectorOverlay({ selection }: InspectorOverlayProps) {
+let fieldIdSeed = 0;
+const createFieldId = () => `field_${Date.now()}_${fieldIdSeed++}`;
+
+export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
   if (!selection) return null;
 
   const data = selection.data;
@@ -54,7 +64,7 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
       : '',
   );
   const [fields, setFields] = useState<
-    Array<{ name: string; value: string }>
+    Array<{ id: string; name: string; value: string }>
   >([]);
 
   useEffect(() => {
@@ -67,6 +77,7 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
     );
     setFields(
       buildFields.map((field) => ({
+        id: createFieldId(),
         name: field.name,
         value:
           field.value !== undefined && field.value !== null
@@ -86,6 +97,7 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
     );
     setFields(
       buildFields.map((field) => ({
+        id: createFieldId(),
         name: field.name,
         value:
           field.value !== undefined && field.value !== null
@@ -144,7 +156,19 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
                     className="inspect-icon-button inspect-icon-button--primary"
                     aria-label="保存"
                     title="保存"
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      onSave?.({
+                        type: selection.type,
+                        id: String(data.id ?? ''),
+                        name: title,
+                        description,
+                        fields: fields.map((field) => ({
+                          name: field.name,
+                          value: field.value,
+                        })),
+                      });
+                      setIsEditing(false);
+                    }}
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
@@ -216,7 +240,10 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
               aria-label="新增属性"
               title="新增属性"
               onClick={() =>
-                setFields((prev) => [...prev, { name: '', value: '' }])
+                setFields((prev) => [
+                  ...prev,
+                  { id: createFieldId(), name: '', value: '' },
+                ])
               }
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -232,7 +259,7 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
           )}
         </div>
         {fields.map((field, index) => (
-          <div className="field-row field-row--editable" key={index}>
+          <div className="field-row field-row--editable" key={field.id}>
             {isEditing ? (
               <input
                 className="field-input field-input--name"
@@ -240,11 +267,13 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
                 onChange={(event) =>
                   setFields((prev) =>
                     prev.map((item, idx) =>
-                      idx === index ? { ...item, name: event.target.value } : item,
+                      idx === index
+                        ? { ...item, name: event.target.value }
+                        : item,
                     ),
                   )
                 }
-                />
+              />
             ) : (
               <span>{field.name}</span>
             )}
@@ -256,7 +285,9 @@ export function InspectorOverlay({ selection }: InspectorOverlayProps) {
                   onChange={(event) =>
                     setFields((prev) =>
                       prev.map((item, idx) =>
-                        idx === index ? { ...item, value: event.target.value } : item,
+                        idx === index
+                          ? { ...item, value: event.target.value }
+                          : item,
                       ),
                     )
                   }

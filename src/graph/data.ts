@@ -7,7 +7,7 @@ import {
   DEFAULT_NODE_SIZE,
 } from './constants';
 
-type RawNode = {
+export type RawNode = {
   id: string;
   name?: string;
   label?: string;
@@ -15,7 +15,7 @@ type RawNode = {
   attrs?: Record<string, unknown>;
 };
 
-type RawEdge = {
+export type RawEdge = {
   id: string;
   source: string;
   target: string;
@@ -24,10 +24,42 @@ type RawEdge = {
   attrs?: Record<string, unknown>;
 };
 
-type RawGraphData = {
+export type RawGraphData = {
   nodes: RawNode[];
   edges: RawEdge[];
 };
+
+export function toRawGraphData(graphData: GraphData): RawGraphData {
+  return {
+    nodes: (graphData.nodes ?? []).map((node) => {
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      const { name, label, type, ...attrs } = data;
+      const rawNode: RawNode = {
+        id: String(node.id),
+        label: String(name ?? label ?? node.id ?? '未命名'),
+        type: typeof type === 'string' ? type : undefined,
+      };
+      if (Object.keys(attrs).length > 0) {
+        rawNode.attrs = attrs;
+      }
+      return rawNode;
+    }),
+    edges: (graphData.edges ?? []).map((edge) => {
+      const data = (edge.data ?? {}) as Record<string, unknown>;
+      const { name, label, ...attrs } = data;
+      const rawEdge: RawEdge = {
+        id: String(edge.id),
+        source: String(edge.source),
+        target: String(edge.target),
+        label: String(name ?? label ?? edge.id ?? '未命名'),
+      };
+      if (Object.keys(attrs).length > 0) {
+        rawEdge.attrs = attrs;
+      }
+      return rawEdge;
+    }),
+  };
+}
 
 export function buildSampleGraphData(rawData: RawGraphData): GraphData {
   return {
