@@ -15,6 +15,12 @@ type InspectorOverlayProps = {
     description: string;
     fields: Array<{ name: string; value: string }>;
   }) => void;
+  onDelete?: (payload: { type: 'node' | 'edge'; id: string }) => void;
+  onCancel?: () => void;
+  mode?: 'view' | 'edit';
+  showEditToggle?: boolean;
+  allowDelete?: boolean;
+  variant?: 'overlay' | 'modal';
 };
 
 function renderFieldValue(value: unknown) {
@@ -27,36 +33,39 @@ function renderFieldValue(value: unknown) {
 let fieldIdSeed = 0;
 const createFieldId = () => `field_${Date.now()}_${fieldIdSeed++}`;
 
-export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
+export function InspectorOverlay({
+  selection,
+  onSave,
+  onDelete,
+  onCancel,
+  mode = 'view',
+  showEditToggle = true,
+  allowDelete = true,
+  variant = 'overlay',
+}: InspectorOverlayProps) {
   if (!selection) return null;
 
   const data = selection.data;
   const meta = (data.data ?? {}) as Record<string, unknown>;
-  const label = (meta.label as string) ?? (data.id as string) ?? '未命名';
+  const label =
+    (meta.label as string) ??
+    (meta.name as string) ??
+    (data.id as string) ??
+    '未命名';
   const metaLine =
     selection.type === 'edge'
       ? `source: ${(data as EdgeData).source ?? '—'} → target: ${(data as EdgeData).target ?? '—'}`
       : `id: ${(data as NodeData).id ?? '—'}`;
 
+  const properties = (meta.properties ?? {}) as Record<string, unknown>;
   const buildFields = useMemo(() => {
-    if (selection.type === 'edge') {
-      return [
-        { name: '关系', value: meta.relation },
-        { name: '强度', value: meta.strength },
-        { name: '证据', value: meta.evidence },
-        { name: '更新时间', value: meta.updatedAt },
-      ];
-    }
-    return [
-      { name: '类型', value: meta.type },
-      { name: '负责人', value: meta.owner },
-      { name: '可信度', value: meta.confidence },
-      { name: '来源', value: meta.source },
-      { name: '更新时间', value: meta.updatedAt },
-    ];
-  }, [meta, selection.type]);
+    return Object.entries(properties).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [properties]);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [title, setTitle] = useState(label);
   const [description, setDescription] = useState(
     meta.description !== undefined && meta.description !== null
@@ -68,7 +77,7 @@ export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
   >([]);
 
   useEffect(() => {
-    setIsEditing(false);
+    setIsEditing(mode === 'edit');
     setTitle(label);
     setDescription(
       meta.description !== undefined && meta.description !== null
@@ -85,10 +94,9 @@ export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
             : '',
       })),
     );
-  }, [buildFields, label, meta.description]);
+  }, [buildFields, label, meta.description, mode]);
 
-  const handleCancel = () => {
-    setIsEditing(false);
+  const resetFields = () => {
     setTitle(label);
     setDescription(
       meta.description !== undefined && meta.description !== null
@@ -107,8 +115,21 @@ export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
     );
   };
 
+  const handleCancel = () => {
+    resetFields();
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    setIsEditing(false);
+  };
+
   return (
-    <div className="side-panel overlay-card--inspector">
+    <div
+      className={`side-panel overlay-card--inspector${
+        variant === 'modal' ? ' inspector-modal' : ''
+      }`}
+    >
       <div className="panel-section">
         <div className="inspect-plain">
           <div className="inspect-header">
@@ -123,7 +144,7 @@ export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
               <div className="inspect-title">{title || label}</div>
             )}
             <div className="inspect-actions">
-              {!isEditing && (
+              {showEditToggle && !isEditing && (
                 <button
                   type="button"
                   className="inspect-icon-button"
@@ -167,7 +188,9 @@ export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
                           value: field.value,
                         })),
                       });
-                      setIsEditing(false);
+                      if (!onCancel) {
+                        setIsEditing(false);
+                      }
                     }}
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -210,6 +233,34 @@ export function InspectorOverlay({ selection, onSave }: InspectorOverlayProps) {
                       />
                     </svg>
                   </button>
+                  {allowDelete && onDelete && (
+                    <button
+                      type="button"
+                      className="inspect-icon-button inspect-icon-button--danger"
+                      aria-label="删除"
+                      title="删除"
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          selection.type === 'node'
+                            ? '确认删除该节点及其关联边？'
+                            : '确认删除该关系？',
+                        );
+                        if (!confirmed) return;
+                        onDelete({ type: selection.type, id: String(data.id ?? '') });
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M6 7h12M9 7V5h6v2M9 10v7M15 10v7M7 7l1 12h8l1-12"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </>
               )}
             </div>

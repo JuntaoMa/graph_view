@@ -6,6 +6,7 @@ import { getNodePosition } from '../graph/view';
 
 type GraphCanvasProps = {
   data: GraphData;
+  tool?: 'select' | 'add-node' | 'add-edge';
   onSelect?: (
     selection: { type: 'node'; data: NodeData } | { type: 'edge'; data: EdgeData } | null,
   ) => void;
@@ -15,35 +16,71 @@ type GraphCanvasProps = {
     before: { x: number; y: number };
     after: { x: number; y: number };
   }) => void;
+  onCreateNode?: (payload: { x: number; y: number }) => void;
+  onCreateEdge?: (payload: { source: string; target: string }) => void;
 };
 
 export function GraphCanvas({
   data,
+  tool = 'select',
   onSelect,
   onGraphReady,
   onNodeMove,
+  onCreateNode,
+  onCreateEdge,
 }: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectRef = useRef<typeof onSelect>(onSelect);
   const graphReadyRef = useRef<typeof onGraphReady>(onGraphReady);
   const nodeMoveRef = useRef<typeof onNodeMove>(onNodeMove);
+  const createNodeRef = useRef<typeof onCreateNode>(onCreateNode);
+  const createEdgeRef = useRef<typeof onCreateEdge>(onCreateEdge);
+  const toolRef = useRef<typeof tool>(tool);
+  const graphRef = useRef<Graph | null>(null);
+  const selectedNodeIdsRef = useRef<Set<string>>(new Set());
+  const selectedEdgeIdsRef = useRef<Set<string>>(new Set());
+  const pendingEdgeSourceRef = useRef<string | null>(null);
+  const resetSelectionRef = useRef<() => void>(() => undefined);
+  const clearPendingEdgeRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     selectRef.current = onSelect;
     graphReadyRef.current = onGraphReady;
     nodeMoveRef.current = onNodeMove;
-  }, [onSelect, onGraphReady, onNodeMove]);
+    createNodeRef.current = onCreateNode;
+    createEdgeRef.current = onCreateEdge;
+    toolRef.current = tool;
+  }, [onSelect, onGraphReady, onNodeMove, onCreateNode, onCreateEdge, tool]);
+
+  useEffect(() => {
+    toolRef.current = tool;
+    if (tool !== 'select') {
+      resetSelectionRef.current?.();
+    }
+    if (tool !== 'add-edge') {
+      clearPendingEdgeRef.current?.();
+    }
+  }, [tool]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const graph = createGraph(containerRef.current, data);
+    graphRef.current = graph;
     graphReadyRef.current?.(graph);
     const dragStartPositions = new Map<string, { x: number; y: number }>();
     let active = true;
 
-    const selectedNodeIds = new Set<string>();
-    const selectedEdgeIds = new Set<string>();
+    const selectedNodeIds = selectedNodeIdsRef.current;
+    const selectedEdgeIds = selectedEdgeIdsRef.current;
+
+    const clearPendingEdge = () => {
+      const pending = pendingEdgeSourceRef.current;
+      if (pending && graph.hasNode(pending)) {
+        void graph.setElementState({ [pending]: [] }, false);
+      }
+      pendingEdgeSourceRef.current = null;
+    };
 
     const updateSelectionStates = () => {
       const data = graph.getData();
@@ -108,6 +145,15 @@ export function GraphCanvas({
       }
     };
 
+    const resetSelection = () => {
+      selectedNodeIds.clear();
+      selectedEdgeIds.clear();
+      updateSelectionStates();
+    };
+
+    resetSelectionRef.current = resetSelection;
+    clearPendingEdgeRef.current = clearPendingEdge;
+
     const renderGraph = async () => {
       await graph.render();
       if (!active || graph.destroyed) return;
@@ -123,6 +169,22 @@ export function GraphCanvas({
     }) => {
       const id = event.target?.id;
       if (!id) return;
+      const activeTool = toolRef.current ?? 'select';
+      if (activeTool === 'add-edge') {
+        if (!pendingEdgeSourceRef.current) {
+          clearPendingEdge();
+          pendingEdgeSourceRef.current = id;
+          void graph.setElementState({ [id]: ['selected'] }, false);
+        } else {
+          const source = pendingEdgeSourceRef.current;
+          clearPendingEdge();
+          if (source) {
+            createEdgeRef.current?.({ source, target: id });
+          }
+        }
+        return;
+      }
+      if (activeTool !== 'select') return;
       const addToSelection =
         event.originalEvent?.shiftKey ||
         event.originalEvent?.metaKey ||
@@ -143,6 +205,8 @@ export function GraphCanvas({
       target?: { id?: string };
       originalEvent?: MouseEvent;
     }) => {
+      const activeTool = toolRef.current ?? 'select';
+      if (activeTool !== 'select') return;
       const id = event.target?.id;
       if (!id) return;
       const addToSelection =
@@ -161,7 +225,23 @@ export function GraphCanvas({
       updateSelectionStates();
     };
 
-    const handleCanvasClick = () => {
+    const handleCanvasClick = (event: { clientX?: number; clientY?: number }) => {
+      const activeTool = toolRef.current ?? 'select';
+      if (activeTool === 'add-node') {
+        const fallback = event as { x?: number; y?: number };
+        const clientX = event.clientX ?? fallback.x ?? 0;
+        const clientY = event.clientY ?? fallback.y ?? 0;
+        const point = graph.getCanvasByClient({
+          x: clientX,
+          y: clientY,
+        });
+        createNodeRef.current?.({ x: point.x, y: point.y });
+        return;
+      }
+      if (activeTool === 'add-edge') {
+        clearPendingEdge();
+        return;
+      }
       selectedNodeIds.clear();
       selectedEdgeIds.clear();
       updateSelectionStates();
@@ -218,6 +298,9 @@ export function GraphCanvas({
       graph.off('node:dragend', handleNodeDragEnd);
       resizeObserver.disconnect();
       graph.destroy();
+      graphRef.current = null;
+      resetSelectionRef.current = () => undefined;
+      clearPendingEdgeRef.current = () => undefined;
     };
   }, [data]);
 

@@ -1,16 +1,21 @@
-import { typePalette } from '../graph/palette';
-
 type ActivityItem = {
   id: string;
   text: string;
   meta: string;
 };
 
-type LeftPanelProps = {
-  activityItems: ActivityItem[];
+type LegendItem = {
+  type: string;
+  color: string;
+  count: number;
 };
 
-export function LeftPanel({ activityItems }: LeftPanelProps) {
+type LeftPanelProps = {
+  activityItems: ActivityItem[];
+  legendItems: LegendItem[];
+};
+
+export function LeftPanel({ activityItems, legendItems }: LeftPanelProps) {
   return (
     <aside className="side-panel side-panel--left">
       <div className="left-panel__main">
@@ -43,11 +48,11 @@ export function LeftPanel({ activityItems }: LeftPanelProps) {
         <div className="panel-section">
           <div className="panel-title">节点类型</div>
           <div className="legend-list">
-            {Object.entries(typePalette).map(([type, color]) => (
-              <div className="legend-item" key={type}>
-                <span className="legend-dot" style={{ background: color }} />
-                <span>{type}</span>
-                <span className="legend-count">8</span>
+            {legendItems.map((item) => (
+              <div className="legend-item" key={item.type}>
+                <span className="legend-dot" style={{ background: item.color }} />
+                <span>{item.type}</span>
+                <span className="legend-count">{item.count}</span>
               </div>
             ))}
           </div>

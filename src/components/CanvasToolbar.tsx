@@ -1,13 +1,6 @@
-const tools = [
-  { label: '选择', active: true },
-  { label: '平移' },
-  { label: '连线' },
-  { label: '分组' },
-  { label: '布局', key: 'layout' },
-  { label: '高亮' },
-];
-
 type CanvasToolbarProps = {
+  activeTool?: 'select' | 'add-node' | 'add-edge';
+  onToolChange?: (tool: 'select' | 'add-node' | 'add-edge') => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onSave?: () => void;
@@ -17,6 +10,8 @@ type CanvasToolbarProps = {
 };
 
 export function CanvasToolbar({
+  activeTool = 'select',
+  onToolChange,
   onUndo,
   onRedo,
   onSave,
@@ -27,15 +22,118 @@ export function CanvasToolbar({
   return (
     <div className="canvas-toolbar">
       <div className="tool-group">
-        {tools.map((tool) => (
-          <button
-            key={tool.label}
-            className={`tool-button${tool.active ? ' active' : ''}`}
-            onClick={tool.key === 'layout' ? onLayout : undefined}
-          >
-            {tool.label}
-          </button>
-        ))}
+        <button
+          className={`tool-button tool-button--icon${
+            activeTool === 'add-node' ? ' active' : ''
+          }`}
+          onClick={() => onToolChange?.('add-node')}
+          aria-label="添加节点"
+          title="添加节点"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 5v14M5 12h14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+          </svg>
+        </button>
+        <button
+          className={`tool-button tool-button--icon${
+            activeTool === 'add-edge' ? ' active' : ''
+          }`}
+          onClick={() => onToolChange?.('add-edge')}
+          aria-label="添加边"
+          title="添加边"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 8h5M13 16h5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+            <circle
+              cx="5"
+              cy="8"
+              r="2.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <circle
+              cx="19"
+              cy="16"
+              r="2.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <path
+              d="M7 9.5l10 5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+        <button
+          className="tool-button tool-button--icon"
+          onClick={onLayout}
+          aria-label="应用布局"
+          title="应用布局"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect
+              x="4"
+              y="4"
+              width="6"
+              height="6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <rect
+              x="14"
+              y="4"
+              width="6"
+              height="6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <rect
+              x="4"
+              y="14"
+              width="6"
+              height="6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <rect
+              x="14"
+              y="14"
+              width="6"
+              height="6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+          </svg>
+        </button>
       </div>
       <div className="tool-group">
         <button
@@ -74,8 +172,34 @@ export function CanvasToolbar({
             />
           </svg>
         </button>
-        <button className="tool-button primary" onClick={onSave}>
-          保存视图
+        <button
+          className="tool-button tool-button--icon"
+          onClick={onSave}
+          aria-label="保存视图"
+          title="保存视图"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M5 4h11l3 3v13H5z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M8 4v6h7V4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <path
+              d="M8 18h8"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
       </div>
     </div>

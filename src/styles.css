@@ -395,6 +395,12 @@ input {
   background: rgba(15, 23, 42, 0.06);
 }
 
+.inspect-icon-button--danger {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #b91c1c;
+}
+
 .inspect-tags {
   display: flex;
   flex-wrap: wrap;
@@ -624,6 +630,17 @@ input {
   z-index: 2;
 }
 
+.canvas-modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(2px);
+  z-index: 3;
+}
+
 .overlay-card {
   padding: 10px 12px;
   border-radius: 14px;
@@ -648,6 +665,12 @@ input {
 .overlay-card--inspector {
   min-width: 220px;
   max-width: 260px;
+}
+
+.inspector-modal {
+  width: min(420px, 92vw);
+  max-width: 420px;
+  min-width: 320px;
 }
 
 .overlay-heading {

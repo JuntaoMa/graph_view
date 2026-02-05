@@ -4,7 +4,7 @@
       "id": "n1",
       "label": "需求分析",
       "type": "process",
-      "attrs": {
+      "properties": {
         "owner": "产品团队",
         "confidence": 0.82,
         "source": "业务访谈",
@@ -17,7 +17,7 @@
       "id": "n2",
       "label": "数据导入",
       "type": "data",
-      "attrs": {
+      "properties": {
         "owner": "数据平台",
         "confidence": 0.76,
         "source": "ETL 管道",
@@ -30,7 +30,7 @@
       "id": "n3",
       "label": "知识图谱",
       "type": "graph",
-      "attrs": {
+      "properties": {
         "owner": "图谱团队",
         "confidence": 0.91,
         "source": "融合模型",
@@ -43,7 +43,7 @@
       "id": "n4",
       "label": "洞察输出",
       "type": "insight",
-      "attrs": {
+      "properties": {
         "owner": "分析团队",
         "confidence": 0.73,
         "source": "分析看板",
@@ -56,7 +56,7 @@
       "id": "n5",
       "label": "本地存储",
       "type": "storage",
-      "attrs": {
+      "properties": {
         "owner": "安全团队",
         "confidence": 0.88,
         "source": "本地磁盘",
@@ -72,7 +72,7 @@
       "source": "n1",
       "target": "n2",
       "label": "准备",
-      "attrs": {
+      "properties": {
         "relation": "inputs",
         "strength": 0.63,
         "evidence": "调研会议",
@@ -84,7 +84,7 @@
       "source": "n2",
       "target": "n3",
       "label": "构建",
-      "attrs": {
+      "properties": {
         "relation": "builds",
         "strength": 0.79,
         "evidence": "管道记录",
@@ -96,7 +96,7 @@
       "source": "n3",
       "target": "n4",
       "label": "输出",
-      "attrs": {
+      "properties": {
         "relation": "outputs",
         "strength": 0.71,
         "evidence": "分析任务",
@@ -108,7 +108,7 @@
       "source": "n5",
       "target": "n3",
       "label": "支持",
-      "attrs": {
+      "properties": {
         "relation": "supports",
         "strength": 0.84,
         "evidence": "存储策略",
@@ -120,7 +120,7 @@
       "source": "n3",
       "target": "n3",
       "label": "自环",
-      "attrs": {
+      "properties": {
         "relation": "feedback",
         "strength": 0.52,
         "evidence": "自学习",
